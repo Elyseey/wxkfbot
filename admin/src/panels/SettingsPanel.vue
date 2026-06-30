@@ -15,18 +15,20 @@
           <span v-if="hasCustomApiKey" class="form-hint-inline">已配置自定义 Key</span>
         </el-form-item>
         <el-form-item label="模型名称">
-          <el-select
+          <el-autocomplete
             v-model="aiForm.model"
-            filterable
-            allow-create
-            default-first-option
-            placeholder="输入或选择模型"
+            :fetch-suggestions="queryModels"
+            placeholder="输入模型名称"
+            clearable
             style="width: 100%"
-            :loading="loadingModels"
           >
-            <el-option v-for="m in modelList" :key="m" :label="m" :value="m" />
-          </el-select>
-          <el-button link type="primary" @click="fetchModels" :loading="loadingModels" style="margin-left:8px">拉取模型</el-button>
+            <template #append>
+              <el-button :loading="loadingModels" @click="fetchModels" class="model-fetch-btn">拉取模型</el-button>
+            </template>
+          </el-autocomplete>
+          <div v-if="modelList.length" class="model-count">
+            <el-text type="info" size="small">{{ modelList.length }} 个可用模型</el-text>
+          </div>
         </el-form-item>
         <el-form-item label="Base URL">
           <el-input v-model="aiForm.baseUrl" placeholder="如 https://api.openai.com/v1" />
@@ -140,6 +142,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Refresh } from '@element-plus/icons-vue'
 import { api } from '../api'
 
 const saving = ref(false)
@@ -166,6 +169,13 @@ async function fetchModels() {
   } finally {
     loadingModels.value = false
   }
+}
+
+function queryModels(query: string, cb: (results: { value: string }[]) => void) {
+  const results = query
+    ? modelList.value.filter(m => m.toLowerCase().includes(query.toLowerCase())).map(m => ({ value: m }))
+    : modelList.value.map(m => ({ value: m }))
+  cb(results)
 }
 
 async function loadStatus() {
@@ -277,6 +287,11 @@ onMounted(() => {
 .form-unit { margin-left: 8px; font-size: 13px; color: var(--text-secondary, #666); }
 .form-actions { display: flex; justify-content: flex-end; }
 .form-hint-inline { margin-left: 8px; font-size: 12px; color: var(--accent, #07C160); }
+
+.model-picker { display: flex; align-items: center; gap: 8px; width: 100%; }
+.model-select { flex: 1; }
+.model-fetch-btn { color: var(--accent, #07C160) !important; background: #fff !important; border: 1px solid var(--border, #e0e0e0) !important; border-left: none !important; }
+.model-count { margin-top: 4px; }
 
 .webhook-rule-card { padding: 12px; margin-bottom: 12px; border: 1px solid var(--border, #e0e0e0); border-radius: var(--radius, 6px); background: var(--bg-elevated, #f7f7f7); }
 .rule-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }

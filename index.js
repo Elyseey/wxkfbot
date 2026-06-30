@@ -293,13 +293,14 @@ async function handleListModels(env) {
             if (kvApiKey) apiKey = kvApiKey;
         } catch (_) {}
         if (!apiKey) return ApiResponse.badRequest('未配置 API Key');
-        const endpoint = baseUrl.replace(/\/$/, '') + '/models';
+        let base = baseUrl.replace(/\/+$/, '');
+        const endpoint = base.endsWith('/v1') ? base + '/models' : base + '/v1/models';
         const resp = await fetch(endpoint, {
             headers: { 'Authorization': `Bearer ${apiKey}` },
         });
         if (!resp.ok) {
-            const text = await resp.text();
-            return ApiResponse.error('拉取模型列表失败', 500, resp.status, { detail: text });
+            const text = await resp.text().catch(() => '');
+            return ApiResponse.internalError('拉取模型列表失败: HTTP ' + resp.status, { detail: text.slice(0, 200), url: endpoint });
         }
         const json = await resp.json();
         const models = (json.data || []).map(m => m.id).sort();
